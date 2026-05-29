@@ -27,6 +27,7 @@ var rfDistroMap = map[distro.Type]distro.Type{
 	distro.Ubuntu: distro.RapidFortUbuntu,
 	distro.Alpine: distro.RapidFortAlpine,
 	distro.RedHat: distro.RapidFortRedHat,
+	distro.Debian: distro.RapidFortDebian,
 }
 
 var (

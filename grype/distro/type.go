@@ -40,6 +40,7 @@ const (
 	RapidFortUbuntu Type = "rapidfort-ubuntu"
 	RapidFortAlpine Type = "rapidfort-alpine"
 	RapidFortRedHat Type = "rapidfort-redhat"
+	RapidFortDebian Type = "rapidfort-debian"
 )
 
 // All contains all Linux distribution options
@@ -74,6 +75,7 @@ var All = []Type{
 	RapidFortUbuntu,
 	RapidFortAlpine,
 	RapidFortRedHat,
+	RapidFortDebian,
 }
 
 // IDMapping maps a distro ID from the /etc/os-release (e.g. like "ubuntu") to a Distro type.
@@ -107,6 +109,7 @@ var IDMapping = map[string]Type{
 	"rapidfort-ubuntu": RapidFortUbuntu,
 	"rapidfort-alpine": RapidFortAlpine,
 	"rapidfort-redhat": RapidFortRedHat,
+	"rapidfort-debian": RapidFortDebian,
 }
 
 // aliasTypes maps common aliases to their corresponding Type.

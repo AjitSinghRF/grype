@@ -135,6 +135,12 @@ func TestRapidfortDistroVersion(t *testing.T) {
 			rfDistro:    distro.RapidFortAlpine,
 			expectedVer: "3.15",
 		},
+		{
+			name:        "rapidfort debian keeps full version",
+			baseDistro:  *distro.New(distro.Debian, "12", ""),
+			rfDistro:    distro.RapidFortDebian,
+			expectedVer: "12",
+		},
 	}
 
 	for _, test := range tests {
