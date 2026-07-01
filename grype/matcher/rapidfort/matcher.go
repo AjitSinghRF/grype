@@ -28,6 +28,15 @@ var rfDistroMap = map[distro.Type]distro.Type{
 	distro.Alpine: distro.RapidFortAlpine,
 	distro.RedHat: distro.RapidFortRedHat,
 	distro.Debian: distro.RapidFortDebian,
+	distro.OracleLinux: distro.RapidFortOracle,
+}
+
+// rfRPMDistros is the set of RF-prefixed RPM-based distros. These share the
+// RHEL-style ".el<N>" release-identifier convention, so they all run through
+// byRPMReleaseIdentifier on lookup.
+var rfRPMDistros = map[distro.Type]struct{}{
+	distro.RapidFortRedHat: {},
+	distro.RapidFortOracle: {},
 }
 
 var (
@@ -63,7 +72,7 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 		return nil, nil, nil
 	}
 
-	// Only match against supported RF-curated base distros (ubuntu/alpine/redhat).
+	// Only match against supported RF-curated base distros (ubuntu/alpine/redhat/oracle).
 	rfDistroType, ok := rfDistroMap[p.Distro.Type]
 	if !ok {
 		return nil, nil, nil
@@ -116,7 +125,7 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 }
 
 func rapidfortDistroVersion(baseDistro distro.Distro, rfDistroType distro.Type) string {
-	if rfDistroType == distro.RapidFortRedHat && baseDistro.MajorVersion() != "" {
+	if _, ok := rfRPMDistros[rfDistroType]; ok && baseDistro.MajorVersion() != "" {
 		return baseDistro.MajorVersion()
 	}
 	return baseDistro.Version
@@ -155,7 +164,7 @@ func (m *Matcher) matchPackageByDistro(store vulnerability.Provider, searchPkg p
 		internal.OnlyVulnerableVersions(pkgVersion),
 	}
 
-	if searchPkg.Distro.Type == distro.RapidFortRedHat {
+	if _, ok := rfRPMDistros[searchPkg.Distro.Type]; ok {
 		criteria = append(criteria, byRPMReleaseIdentifier(searchPkg))
 	}
 
@@ -176,7 +185,7 @@ func (m *Matcher) matchPackageByDistro(store vulnerability.Provider, searchPkg p
 		matches = append(matches, match.Match{
 			Vulnerability: vuln,
 			Package:       matchPackage(searchPkg, catalogPkg),
-			Details:       distroMatchDetails(m.Type(), ty, searchPkg, catalogPkg, vuln),
+			Details:       distroMatchDetails(m.Type(), ty, searchPkg, vuln),
 		})
 	}
 
@@ -223,13 +232,13 @@ func advisoryID(advisory vulnerability.Advisory) string {
 func installedReleaseIdentifier(p pkg.Package) string {
 	version := strings.ToLower(strings.TrimSpace(p.Version))
 
-	if id := fedoraReleaseID(p, version); id != "" {
+	if id := fedoraReleaseID(version); id != "" {
 		return id
 	}
-	if id := rfReleaseID(p, version); id != "" {
+	if id := rfReleaseID(version); id != "" {
 		return id
 	}
-	if id := rhelReleaseID(p, version); id != "" {
+	if id := rhelReleaseID(version); id != "" {
 		return id
 	}
 	if id := rfNameReleaseID(p); id != "" {
@@ -239,7 +248,7 @@ func installedReleaseIdentifier(p pkg.Package) string {
 	return ""
 }
 
-func fedoraReleaseID(p pkg.Package, version string) string {
+func fedoraReleaseID(version string) string {
 	if !fedoraReleasePattern.MatchString(version) {
 		return ""
 	}
@@ -249,11 +258,10 @@ func fedoraReleaseID(p pkg.Package, version string) string {
 		return ""
 	}
 
-	id := version[idx+1:]
-	return id
+	return version[idx+1:]
 }
 
-func rfReleaseID(p pkg.Package, version string) string {
+func rfReleaseID(version string) string {
 	if !rfReleasePattern.MatchString(version) {
 		return ""
 	}
@@ -261,7 +269,7 @@ func rfReleaseID(p pkg.Package, version string) string {
 	return "rf"
 }
 
-func rhelReleaseID(p pkg.Package, version string) string {
+func rhelReleaseID(version string) string {
 	if !rhelReleasePattern.MatchString(version) {
 		return ""
 	}
@@ -270,8 +278,7 @@ func rhelReleaseID(p pkg.Package, version string) string {
 	if len(match) != 2 {
 		return ""
 	}
-	id := "el" + match[1]
-	return id
+	return "el" + match[1]
 }
 
 func rfNameReleaseID(p pkg.Package) string {
@@ -288,7 +295,7 @@ func matchPackage(searchPkg pkg.Package, catalogPkg *pkg.Package) pkg.Package {
 	return searchPkg
 }
 
-func distroMatchDetails(upstreamMatcher match.MatcherType, ty match.Type, searchPkg pkg.Package, catalogPkg *pkg.Package, vuln vulnerability.Vulnerability) []match.Detail {
+func distroMatchDetails(upstreamMatcher match.MatcherType, ty match.Type, searchPkg pkg.Package, vuln vulnerability.Vulnerability) []match.Detail {
 	return []match.Detail{
 		{
 			Type:    ty,
